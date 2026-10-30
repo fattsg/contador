@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lotería del SAT · Cantador</title>
+<style>
+
+
+:root{--bg:#f4ead2;--ink:#1d2a4a;--card:#fffaf0;--red:#c8372d;--gold:#e9a820;--muted:#6b6450;--bean:#2f6b4f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b30;--ink:#f3e9cf;--card:#222c4a;--red:#ef6a5c;--gold:#f0b73a;--muted:#a9a58f;--bean:#6fcf9f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141b30;--ink:#f3e9cf;--card:#222c4a;--red:#ef6a5c;--gold:#f0b73a;--muted:#a9a58f;--bean:#6fcf9f;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh}
+main{max-width:640px;margin:0 auto;padding:16px 14px 40px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:2rem;margin:4px 0 2px;letter-spacing:.5px;color:var(--red)}
+p.sub{margin:0 0 14px;color:var(--muted);font-size:.95rem}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button,.btn{font:inherit;font-weight:700;border:2px solid var(--ink);background:transparent;color:var(--ink);padding:10px 16px;border-radius:10px;cursor:pointer}
+.tabs button{flex:1}
+.tabs button[aria-pressed="true"],.btn.main{background:var(--ink);color:var(--bg)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tile{position:relative;background:var(--card);border:2px solid var(--red);border-radius:8px;aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;cursor:pointer;font:inherit;color:var(--ink);text-align:center}
+.tile .e{font-size:clamp(1.4rem,7vw,2.2rem);line-height:1}
+.tile .n{font-size:clamp(.62rem,2.6vw,.8rem);font-weight:700;line-height:1.1;overflow-wrap:anywhere}
+.tile.on::after{content:"";position:absolute;width:42%;aspect-ratio:1;border-radius:50%;background:var(--bean);border:3px solid var(--card);box-shadow:0 0 0 2px var(--bean);top:50%;left:50%;transform:translate(-50%,-50%)}
+.tile.on{background:color-mix(in srgb,var(--gold) 22%,var(--card))}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.msg{margin-top:12px;font-family:Georgia,serif;font-size:1.5rem;color:var(--red);font-weight:700;min-height:1.8em}
+.hint{font-size:.85rem;color:var(--muted)}
+.clue{background:var(--card);border:3px solid var(--red);border-radius:14px;padding:22px 18px;min-height:200px;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.clue .no{color:var(--muted);font-size:.9rem}
+.clue .q{font-family:Georgia,serif;font-size:clamp(1.3rem,5.5vw,1.9rem);line-height:1.3}
+.clue .a{font-size:clamp(1.4rem,6vw,2rem);font-weight:800;color:var(--red)}
+.hist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.hist span{background:var(--card);border:1px solid var(--muted);border-radius:20px;padding:3px 10px;font-size:.8rem}
+[hidden]{display:none!important}
+
+main{max-width:1280px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.top h1{margin:0;font-size:1.6rem}
+.count{color:var(--muted);font-weight:700}
+.stage{display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:center;min-height:62vh}
+.bigcard{background:var(--card);border:6px solid var(--red);border-radius:20px;width:min(380px,80vw);aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px;text-align:center;box-shadow:0 0 0 4px var(--card),0 0 0 8px var(--gold)}
+.bigcard .e{font-size:clamp(5rem,20vh,10rem);line-height:1}
+.bigcard .n{font-family:Georgia,serif;font-weight:700;font-size:clamp(1.5rem,3.2vw,2.5rem);line-height:1.1;color:var(--ink)}
+.bigcard .num{align-self:flex-start;color:var(--muted);font-weight:700}
+.info{flex:1 1 360px;max-width:640px}
+.info .q{font-family:Georgia,serif;font-size:clamp(1.4rem,3vw,2.6rem);line-height:1.35}
+.info .start{font-family:Georgia,serif;font-size:clamp(1.4rem,3vw,2.2rem);color:var(--muted)}
+.hist{max-height:22vh;overflow:auto}
+.hist span.cur{background:var(--gold);border-color:var(--gold);color:#1d2a4a;font-weight:700}
+.btn.on{background:var(--gold);border-color:var(--gold);color:#1d2a4a}
+
+.tag{display:inline-block;font-weight:800;border-radius:20px;padding:4px 14px;margin-left:8px;font-size:1rem;vertical-align:middle;background:var(--ink);color:var(--bg)}
+.tag.g{background:var(--gold);color:#1d2a4a}
+.row label{font-size:.85rem;color:var(--muted);display:flex;gap:6px;align-items:center}
+.row select{font:inherit;padding:8px;border-radius:8px;border:2px solid var(--ink);background:var(--card);color:var(--ink)}
+.row.sep{border-top:1px solid var(--muted);padding-top:12px}
+</style></head><body><main>
+<div class="top">
+<h1>Lotería del SAT <span class="tag" id="rtag"></span></h1>
+<span class="count" id="count"></span>
+</div>
+<div class="stage">
+<div class="bigcard" id="card" aria-live="polite"></div>
+<div class="info" id="info"></div>
+</div>
+<div class="row">
+<button class="btn" id="prev">← Anterior</button>
+<button class="btn main" id="next">Siguiente carta →</button>
+<button class="btn" id="reveal" hidden>Mostrar carta</button>
+<button class="btn" id="voice" aria-pressed="true">🔊 Voz: sí</button>
+<button class="btn" id="auto" aria-pressed="false">▶ Automático: no</button>
+</div>
+<div class="row">
+<label>Pausa entre cartas <select id="gap"><option value="4">4 s</option><option value="8" selected>8 s</option><option value="12">12 s</option><option value="20">20 s</option></select></label>
+<label>Velocidad de la voz <select id="rate"><option value="0.85">Lenta</option><option value="1" selected>Normal</option><option value="1.15">Rápida</option></select></label>
+<label>Voz <select id="vsel"><option>Cargando…</option></select></label>
+<span class="hint">Las marcadas con ★ (“Natural”) suenan mucho más humanas; salen en Microsoft Edge.</span>
+<button class="btn" id="full">Pantalla completa</button>
+</div>
+<div class="row sep">
+<button class="btn" id="nreg">Nueva ronda regular</button>
+<button class="btn" id="nguess">Nueva ronda de adivinanza</button>
+</div>
+<p class="hint">Ronda regular: se ve la carta con su nombre y se lee en voz alta. Ronda de adivinanza: solo se ve y se lee la pista; la carta aparece después de la pausa (o con el botón Mostrar carta). Atajos: barra espaciadora o → siguiente · ← anterior · R mostrar · F pantalla completa.</p>
+<div class="hist" id="hist" aria-label="Cartas que ya salieron"></div>
+</main>
+<script>
+var C=[
+["💵", "Ingreso bruto (IB)", "Todo el dinero que entra por la actividad, sin restar nada."],
+["🧾", "Gastos de operación (GO)", "Dinero que gastas para que el negocio funcione día a día. También se llama COA o MYO."],
+["📉", "Depreciación (D)", "Reparte el costo del equipo entre los años de vida útil. No es flujo de efectivo."],
+["🎯", "Ingreso gravable (IG)", "Cifra sobre la que el SAT calcula el impuesto: IB − GO − D."],
+["💰", "UNDI", "Utilidad neta después de impuestos: lo que de verdad te queda. IG − impuestos."],
+["🪣", "Tasa graduada", "El impuesto se calcula por cubetas: cada tramo del IG paga su propia tasa."],
+["🚕", "Tasa marginal", "Lo que te cobran por el siguiente peso: la tasa de la última cubeta."],
+["📊", "Tasa promedio", "Impuesto total entre IG. Qué porcentaje pagaste en total."],
+["🏛️", "Tasa efectiva (Te)", "Combina el impuesto estatal y el federal: t estatal + (1 − t estatal)(t federal)."],
+["📒", "Valor en libros (VL)", "Costo del equipo menos la depreciación acumulada. Número contable, no precio de mercado."],
+["🔁", "Recobro de depreciación (RD)", "Vendes por más que el valor en libros: el SAT recupera la deducción que tomaste de más."],
+["🏠", "Ganancia de capital (GC)", "Vendes por más de lo que costó. Típico de terrenos y edificios."],
+["🩹", "Pérdida de capital (PC)", "Vendes por menos que el valor en libros. Te ahorra impuestos."],
+["🗃️", "FEAI", "Flujo de efectivo antes de impuestos: IB − GO − P + S. Sin depreciación."],
+["🏦", "FEDI", "Flujo de efectivo después de impuestos: FEAI − impuestos."],
+["🚧", "TMAR", "Rendimiento mínimo que la empresa exige, ya contando impuestos."],
+["📈", "Tasa de rendimiento (TR)", "La tasa i* que hace cero el valor presente del FEDI."],
+["➕", "Análisis incremental", "Se evalúa solo la inversión extra de la alternativa más cara. Elegir por la TR más alta es una falacia."],
+["⚡", "SMARC", "Depreciación acelerada: lleva el activo a cero en el año n + 1."],
+["♻️", "Valor de salvamento (S)", "Lo que vale el equipo al final de su vida útil."],
+["🏋️", "Defensor y retador", "En reemplazo, el equipo actual contra el candidato nuevo. El defensor entra con su valor comercial."],
+["⚖️", "VEA", "Valor económico agregado: UNDI − costo del capital (i × valor en libros)."],
+["🌡️", "Análisis de sensibilidad", "Cómo cambia el VP, VA o TR cuando varías un parámetro estimado, como la TMAR o la vida útil."],
+["🎲", "Valor esperado", "Suma de cada resultado por su probabilidad. Promedio de largo plazo."],
+["🌳", "Árbol de decisión", "Se dibuja de izquierda a derecha y se resuelve de derecha a izquierda con valores esperados."],
+["🧮", "Vida útil", "Años durante los que te sirve el equipo. Es el divisor de la depreciación en línea recta."],
+["📏", "Depreciación línea recta", "D = costo entre vida útil: la misma cantidad cada año."],
+["🏷️", "Costo inicial (P)", "Inversión que se paga de golpe para comprar el equipo."],
+["🌅", "Año 0", "Momento de la compra de todo el equipo. El flujo de efectivo es negativo."],
+["📓", "Libreta 1", "Flujo de efectivo antes de impuestos: solo dinero real, sin depreciación ni impuestos."],
+["📔", "Libreta 2", "Se parte de la libreta 1 y se resta solo el impuesto."],
+["🛡️", "Exención personal", "Descuento fijo para individuos por ti, tu pareja y tus hijos."],
+["📋", "Deducción estándar", "Descuento fijo para individuos, sin necesidad de comprobantes."],
+["🏢", "Corporación", "Gasta para producir ingreso, por eso sus gastos sí son deducibles."],
+["🌮", "Impuesto estatal", "Se paga primero; el federal se calcula sobre lo que queda."],
+["🦅", "Impuesto federal", "Se calcula sobre lo que queda después de pagar el estatal."],
+["🔄", "Indexación", "Ajuste anual de los límites de las cubetas por inflación y otros factores."],
+["🍽️", "Pedido extra", "Ejemplo del catering de $10,000: para decidir si conviene se usa la tasa marginal."],
+["🤝", "Precio de venta (PV)", "Lo que recibes al vender el activo. Se compara contra el VL y contra P."],
+["🗺️", "Zonas del PV", "Según caiga abajo del VL, entre VL y P, o arriba de P, cambia el resultado fiscal."],
+["🧩", "IG ampliado", "IG = IB − GO − D + RD + GC − PC. Incluye lo que pasa al vender el activo."],
+["🦴", "Analizador óseo", "Ejemplo de la empresa médica con contrato de la NBA para estudiar densidad ósea."],
+["🍰", "Tasas SMARC 5 años", "20 %, 32 % y 19.2 % del costo en los años 1 a 3."],
+["🧯", "Ahorro por pérdida", "Se calcula PC por Te: reduce lo que le pagas al SAT."],
+["💸", "Impuesto por recobro", "Se calcula RD por Te: lo que pagas de más al vender sobre el valor en libros."],
+["🧲", "VP del FEDI", "Valor presente de los flujos después de impuestos, descontados a la TMAR."],
+["📆", "VA del FEDI", "Valor anual equivalente de los flujos después de impuestos."],
+["✅", "VP mayor que 0", "Un solo proyecto: es viable porque alcanza o supera la TMAR."],
+["🪫", "Solo costos", "Se estiman los ahorros después de impuestos con signo positivo."],
+["🔢", "MCM de las vidas", "Mínimo común múltiplo: periodo para comparar alternativas con vidas distintas."],
+["🧠", "TIR en Excel", "Función que calcula la tasa de rendimiento i* del FEDI."],
+["💳", "Función PAGO", "En Excel convierte el VP del FEDI en un valor anual."],
+["🔮", "TR antes aproximada", "Se divide la TR después de impuestos entre (1 − Te)."],
+["🔼", "Δi* ≥ TMAR", "Se elige la alternativa de mayor inversión si el flujo extra rinde al menos la TMAR."],
+["➖", "FEDI incremental", "FEDI de la inversión mayor menos FEDI de la inversión menor."],
+["⛓️", "Punto de equilibrio", "Si la TMAR supera esta TR en la gráfica de VP contra i, no se justifica la inversión extra."],
+["🌐", "Fibra óptica", "Ejemplo de $50,000 con FEAI de $20,000: su FEDI es $16,000 y su TR 18.03 %."],
+["🤑", "Valor comercial", "En reemplazo, el defensor entra con este valor como costo inicial."],
+["🔩", "Análisis de reemplazo", "Decide si conservar el equipo actual o cambiarlo. Vender el viejo tiene efecto fiscal."],
+["🏧", "Costo del capital", "i por el valor en libros del año anterior: lo que cuesta tener dinero invertido."],
+["🌟", "VEA mayor que 0", "El proyecto rinde más que la TMAR después de impuestos."],
+["🤲", "VEA y FEDI", "Dan el mismo valor anual: uno mide efectivo real y el otro ya descuenta el costo del capital."],
+["🔬", "Parámetro", "Variable cuyo valor hay que estimar: costo inicial, vida, COA, tasa de producción."],
+["📐", "Rango de variación", "Paso 2 de sensibilidad: intervalo probable e incrementos de cada parámetro."],
+["🧰", "Medida de valor", "VP, VA, TR o B/C: lo que se recalcula al variar el parámetro."],
+["🖼️", "Gráfica de sensibilidad", "Parámetro contra medida de valor; ayuda a hallar puntos de equivalencia."],
+["🎢", "Relaciones no lineales", "Piden varios puntos intermedios, no solo dos extremos unidos con una recta."],
+["🚦", "TMAR límite", "Tasa arriba de la cual el VP se vuelve negativo y el proyecto destruye valor."],
+["3️⃣", "Tres estimaciones", "Una pesimista, una más probable y una optimista por cada parámetro."],
+["😟", "Estimación pesimista", "El valor del parámetro en el peor escenario razonable."],
+["😄", "Estimación optimista", "El valor del parámetro en el mejor escenario razonable."],
+["😐", "Más probable", "La estimación central, la que se espera que ocurra con mayor probabilidad."],
+["🔟", "Probabilidad", "Número entre 0 y 1.0; las de un conjunto de resultados suman 1.0."],
+["🫥", "Flujo cero", "Su probabilidad no cambia E(X), pero se incluye para que todo sume 1.0."],
+["⛽", "Mezcla de combustible", "Ejemplo de la planta con puro gas, menos de 30 % otros y 30 % o más otros."],
+["🔻", "E(VP) negativo", "Indica que no se espera que la propuesta rinda la TMAR."],
+["🟦", "Nodo de decisión", "Cuadrado del árbol, con las alternativas posibles en sus ramas."],
+["⚪", "Nodo de probabilidad", "Círculo del árbol, con resultados posibles y sus probabilidades en las ramas."],
+["🍃", "Retribución de la rama", "Valor económico en VP, VA o VF al final de cada rama de resultado."],
+["🧭", "E(VP) del árbol", "Medida de valor que se suele usar en el árbol, con el VP a la TMAR."],
+["🛤️", "Mejor ruta", "Último paso del árbol: marcar de regreso las decisiones óptimas."],
+["🔒", "Certidumbre", "Los parámetros se conocen y se usan como valores fijos únicos."],
+["⚠️", "Riesgo", "Hay dos o más valores posibles y se les puede asignar una probabilidad."],
+["🌫️", "Incertidumbre", "Hay varios estados futuros, pero no hay datos para asignarles probabilidades."],
+["🔠", "Variable discreta", "Toma valores contables específicos, como la vida útil en años enteros."],
+["🌊", "Variable continua", "Puede tomar cualquier valor de un intervalo, como flujos de efectivo o tasas."],
+["🪜", "Distribución acumulativa", "Suma de probabilidades: escalones si es discreta, curva suave si es continua."],
+["🎻", "Varianza", "Mide la dispersión de los datos alrededor de la media."],
+["📶", "Desviación estándar", "Entre mayor sea, más amplia la dispersión y mayor el riesgo económico."],
+["🎰", "Simulación Monte Carlo", "Incorpora variación, probabilidad y muestreo al análisis económico."]
+];
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+var $=function(i){return document.getElementById(i)};
+var order=shuf(C),pos=-1,rev=[],round={n:1,guess:false};
+var voiceOn=true,auto=false,tok=0,tm=null,tm2=null,voice=null;
+var synth=window.speechSynthesis||null;
+function pickVoice(){
+ if(!synth)return;
+ var all=synth.getVoices().filter(function(x){return /^es/i.test(x.lang)});
+ function sc(x){var s=0,n=x.name+" "+x.lang;
+  if(/^es[-_]MX/i.test(x.lang))s+=30;else if(/^es[-_]US/i.test(x.lang))s+=20;else s+=10;
+  if(/natural|neural|online/i.test(n))s+=100;
+  if(/premium|enhanced|mejorada/i.test(n))s+=60;
+  if(/google/i.test(n))s+=40;
+  if(/compact|espeak/i.test(n))s-=50;
+  return s}
+ all.sort(function(a,b){return sc(b)-sc(a)});
+ var sel=$("vsel"),saved="";
+ try{saved=localStorage.getItem("loteria-voz")||""}catch(e){}
+ sel.innerHTML="";
+ all.forEach(function(x){var o=document.createElement("option");o.value=x.name;o.textContent=x.name.replace(/^Microsoft /,"")+" ("+x.lang+")"+(/natural|neural|online/i.test(x.name)?" ★":"");sel.appendChild(o)});
+ if(!all.length){sel.innerHTML="<option>Voz predeterminada</option>"}
+ voice=all.filter(function(x){return x.name===saved})[0]||all[0]||null;
+ if(voice)sel.value=voice.name;
+}
+if(synth){pickVoice();synth.onvoiceschanged=pickVoice}
+function isRev(k){return !round.guess||rev[k]===true}
+function render(){
+ var card=$("card"),info=$("info"),n=order.length;
+ $("rtag").textContent="Ronda "+round.n+" · "+(round.guess?"Adivinanza":"Regular");
+ $("rtag").className="tag"+(round.guess?" g":"");
+ $("count").textContent=pos<0?n+" cartas en la baraja":"Carta "+(pos+1)+" de "+n;
+ $("reveal").hidden=!(round.guess&&pos>=0&&!rev[pos]);
+ if(pos<0){
+  card.innerHTML='<div class="e">🎲</div><div class="n">Lotería del SAT</div>';
+  info.innerHTML='<div class="start">Toca “Siguiente carta”, la barra espaciadora o “Automático” para empezar.</div>';
+ }else{
+  var c=order[pos],r=isRev(pos);
+  card.innerHTML='<div class="num">'+(pos+1)+'</div><div class="e">'+(r?c[0]:"❓")+'</div><div class="n">'+(r?c[1]:"¿Cuál es?")+'</div>';
+  info.innerHTML='<div class="q">'+c[2]+'</div>';
+ }
+ var h="";for(var k=0;k<=pos;k++){var rr=isRev(k);h+='<span'+(k===pos?' class="cur"':'')+'>'+(rr?order[k][0]+" "+order[k][1]:"❓ …")+"</span>"}
+ $("hist").innerHTML=h;
+}
+function cancelAll(){tok++;clearTimeout(tm);clearTimeout(tm2);if(synth)synth.cancel()}
+function wait(s,fn,t){clearTimeout(tm);tm=setTimeout(function(){if(t===tok)fn()},s*1000)}
+function say(text,cb,t){
+ if(!voiceOn||!synth){wait(1.2,function(){cb&&cb()},t);return}
+ var u=new SpeechSynthesisUtterance(text),done=false;
+ u.lang="es-MX";if(voice)u.voice=voice;u.rate=parseFloat($("rate").value);
+ function fin(){if(done)return;done=true;clearTimeout(tm2);if(t===tok&&cb)cb()}
+ u.onend=fin;u.onerror=fin;
+ synth.speak(u);
+ clearTimeout(tm2);tm2=setTimeout(fin,text.length*130+5000);
+}
+function gap(){return parseFloat($("gap").value)}
+function present(){
+ var t=tok,c=order[pos];
+ if(!round.guess){
+  say(c[1]+". "+c[2],function(){if(auto)wait(gap(),advance,t)},t);
+ }else{
+  say(c[2],function(){if(auto)wait(gap(),function(){doReveal(t)},t)},t);
+ }
+}
+function doReveal(t){
+ rev[pos]=true;render();
+ say(order[pos][1],function(){if(auto)wait(3,advance,t)},t);
+}
+function advance(){if(pos>=order.length-1){setAuto(false);$("info").innerHTML='<div class="q">Ya salieron las '+order.length+' cartas. Empieza una nueva ronda.</div>';return}nextCard()}
+function nextCard(){
+ if(pos>=order.length-1){setAuto(false);$("info").innerHTML='<div class="q">Ya salieron las '+order.length+' cartas. Empieza una nueva ronda.</div>';return}
+ cancelAll();pos++;rev[pos]=false;render();present();
+}
+function prevCard(){if(pos>=0){setAuto(false);cancelAll();pos--;render()}}
+function reveal(){if(round.guess&&pos>=0&&!rev[pos]){cancelAll();doReveal(tok)}}
+function setAuto(on){auto=on;$("auto").textContent=on?"⏸ Automático: sí":"▶ Automático: no";$("auto").setAttribute("aria-pressed",on);if(!on){cancelAll()}}
+function newRound(g){
+ if(pos>=0&&pos<order.length-1&&!confirm("¿Empezar una nueva ronda? Se reinicia la baraja y el historial."))return;
+ setAuto(false);cancelAll();
+ if(pos>=0)round.n++;
+ round.guess=g;order=shuf(C);pos=-1;rev=[];render();
+}
+$("vsel").onchange=function(){
+ var n=$("vsel").value;
+ voice=synth?(synth.getVoices().filter(function(x){return x.name===n})[0]||null):null;
+ try{localStorage.setItem("loteria-voz",n)}catch(e){}
+ if(synth){setAuto(false);var u=new SpeechSynthesisUtterance("Hola, así suena esta voz.");u.lang="es-MX";if(voice)u.voice=voice;u.rate=parseFloat($("rate").value);synth.speak(u)}
+};
+$("next").onclick=nextCard;$("prev").onclick=prevCard;$("reveal").onclick=reveal;
+$("voice").onclick=function(){voiceOn=!voiceOn;$("voice").textContent=voiceOn?"🔊 Voz: sí":"🔇 Voz: no";$("voice").setAttribute("aria-pressed",voiceOn);if(!voiceOn&&synth)synth.cancel()};
+$("auto").onclick=function(){if(auto){setAuto(false)}else{setAuto(true);nextCard()}};
+$("nreg").onclick=function(){newRound(false)};$("nguess").onclick=function(){newRound(true)};
+$("full").onclick=function(){var d=document;if(d.fullscreenElement){d.exitFullscreen()}else if(d.documentElement.requestFullscreen){d.documentElement.requestFullscreen()}};
+Array.prototype.forEach.call(document.querySelectorAll("button"),function(b){b.addEventListener("click",function(){b.blur()})});
+document.addEventListener("keydown",function(e){
+ if(e.target&&e.target.tagName==="SELECT")return;
+ if(e.code==="Space"||e.key==="ArrowRight"){e.preventDefault();nextCard()}
+ else if(e.key==="ArrowLeft"){prevCard()}
+ else if(e.key==="r"||e.key==="R"){reveal()}
+ else if(e.key==="f"||e.key==="F"){$("full").click()}
+});
+render();
+</script></body></html>
